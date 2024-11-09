@@ -10,12 +10,36 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 
 def home(request):
+
+    """
+    Exibe a página inicial com uma lista de todas as empresas e funcionários.
+
+    Args:
+        request: Objeto HTTP contendo metadados da requisição.
+
+    Returns:
+        Renderiza a página 'home.html' com os dados de empresas e funcionários.
+    """
+
     empresas = Empresa.objects.all()
     funcionarios = Funcionario.objects.all()
     return render(request, 'home.html', {'empresas': empresas, 'funcionarios': funcionarios})
 
 @login_required
 def cadastrar_empresa(request):
+
+    """
+    Exibe o formulário de cadastro de empresa e permite que o usuário cadastrado (superusuário) 
+    ou funcionário comum cadastre uma nova empresa. O superusuário pode designar um administrador.
+
+    Args:
+        request: Objeto HTTP contendo metadados da requisição.
+
+    Returns:
+        Redireciona para a página inicial após o cadastro da empresa com sucesso,
+        ou exibe o formulário de cadastro em caso de requisição GET.
+    """
+
     if request.method == 'POST':
         nome = request.POST.get('nome')
         endereco = request.POST.get('endereco')
@@ -42,13 +66,26 @@ from django.db import IntegrityError, transaction
 
 @login_required
 def cadastrar_funcionario(request):
+
+    """
+    Exibe o formulário de cadastro de funcionário e permite que o usuário cadastre um novo funcionário. 
+    O superusuário pode designar o funcionário como administrador.
+
+    Args:
+        request: Objeto HTTP contendo metadados da requisição.
+
+    Returns:
+        Redireciona para a página inicial após o cadastro com sucesso, 
+        ou exibe o formulário com uma mensagem de erro em caso de falha.
+    """
+
     if request.method == 'POST':
         nome = request.POST.get('nome')
         email = request.POST.get('email')
         empresa_id = request.POST.get('empresa')
         senha = request.POST.get('senha')
         
-        # Verificação do sobrenome
+        
         nome_split = nome.split(" ")
         if len(nome_split) < 2:
             messages.error(request, "Informe o nome e o sobrenome.")
@@ -58,35 +95,35 @@ def cadastrar_funcionario(request):
         sobrenome = nome_split[1]
         username = f"{primeiro_nome}.{sobrenome}"
         
-        # Buscar a empresa
+        
         try:
             empresa = Empresa.objects.get(id=empresa_id)
         except Empresa.DoesNotExist:
             messages.error(request, "Empresa não encontrada.")
             return redirect('cadastrar_funcionario')
         
-        # Verificar se o email já está em uso
+        
         if Funcionario.objects.filter(email=email).exists():
             messages.error(request, "Este email já está em uso.")
             return redirect('cadastrar_funcionario')
 
         try:
-            with transaction.atomic():  # Garante que o processo seja tratado como uma transação
-                # Criar o usuário associado ao funcionário
+            with transaction.atomic():  
+                
                 user = User.objects.create_user(username=username, password=senha)
                 
-                # Verificar se é admin
+                
                 if request.user.is_superuser:
                     user.is_staff = 'is_admin' in request.POST  # Define o usuário como staff/admin, se marcado
                 
                 user.save()
                 
-                # Criar o funcionário e associá-lo ao usuário
+                
                 funcionario = Funcionario.objects.create(
                     nome=nome,
                     email=email,
                     empresa=empresa,
-                    user=user  # Associa o usuário criado ao funcionário
+                    user=user  
                 )
                 
             messages.success(request, "Funcionário cadastrado com sucesso.")
@@ -97,7 +134,7 @@ def cadastrar_funcionario(request):
             messages.error(request, "Erro ao cadastrar funcionário. Verifique os campos e tente novamente.")
             return redirect('cadastrar_funcionario')
 
-    # Exibir o formulário
+    
     empresas = Empresa.objects.all()
     return render(request, 'cadastrar_funcionario.html', {'empresas': empresas})
 
@@ -106,15 +143,14 @@ def registrar_ponto(request):
     funcionario = request.user.funcionario
     hoje = timezone.now().date()
 
-    # Busca o ponto do dia atual
+    
     ponto = Ponto.objects.filter(funcionario=funcionario, data=hoje).first()
 
     if request.method == 'POST':
-        # Se não há ponto registrado para o dia, cria um novo
         if ponto is None:
             ponto = Ponto(funcionario=funcionario, data=hoje)
         
-        # Verifica se ainda há batidas restantes
+        
         if ponto.batidas_restantes():
             ponto.registrar_batida()
             messages.success(request, "Ponto registrado com sucesso!")
@@ -124,7 +160,7 @@ def registrar_ponto(request):
         ponto.save()
         return redirect('registrar_ponto')
 
-    # Contexto da página
+    
     context = {
         'ponto': ponto,
         'hoje': hoje
@@ -134,38 +170,45 @@ def registrar_ponto(request):
 
 @login_required
 def consultar_ponto(request):
+
+    """
+    Exibe a página de consulta de pontos registrados com filtro por mês e ano. 
+    Permite a edição dos pontos para administradores.
+
+    Args:
+        request: Objeto HTTP contendo metadados da requisição.
+
+    Returns:
+        Renderiza a página de consulta de ponto ('consultar_ponto.html') com os pontos 
+        registrados, opções de filtro de data e funcionalidade de edição para admin.
+    """
+
     hoje = timezone.now().date()
     mes_atual = hoje.month
     ano_atual = hoje.year
 
-    # Se o mês for filtrado pelo usuário, usamos o mês e ano selecionados
+    
     mes = request.GET.get('mes', mes_atual)
     ano = request.GET.get('ano', ano_atual)
 
-    # Busca todos os pontos do mês e ano selecionados para o funcionário logado
     funcionario = request.user.funcionario
     pontos = Ponto.objects.filter(funcionario=funcionario, data__month=mes, data__year=ano)
 
-    # Verifica se o usuário é admin
     is_admin = request.user.is_staff
 
     if request.method == 'POST' and is_admin:
-        # Caso o admin envie o formulário para editar os pontos
         for key, value in request.POST.items():
             if key.startswith('ponto_'):
                 try:
                     ponto_id, campo = key.split('_')[1], key.split('_')[2]
                     ponto = Ponto.objects.get(id=ponto_id)
 
-                    # Verifica se o campo existe no modelo e atualiza
                     if campo in ['entrada', 'inicio_intervalo', 'fim_intervalo', 'saida']:
                         try:
-                            # Transformando a string em datetime antes de salvar
                             datetime_value = timezone.make_aware(timezone.datetime.strptime(value, '%Y-%m-%dT%H:%M'))
                             setattr(ponto, campo, datetime_value)
                             ponto.save()
                         except ValueError:
-                            # Caso a conversão falhe (campo vazio ou formato inválido)
                             continue
 
                 except (Ponto.DoesNotExist, ValueError):
@@ -174,7 +217,6 @@ def consultar_ponto(request):
         messages.success(request, "Pontos atualizados com sucesso!")
         return redirect('consultar_ponto')
 
-    # Filtro de meses
     meses = [(i, f'{i:02d}') for i in range(1, 13)]
     anos = [ano_atual, ano_atual - 1, ano_atual + 1]
 
