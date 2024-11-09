@@ -1,0 +1,25 @@
+<!-- templates/base_generic.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema Ponto{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <h1>Bem-vindo ao Sistema Ponto</h1>
+        <!-- Você pode adicionar aqui links de navegação ou cabeçalho -->
+    </header>
+
+    <main>
+        {% block content %}
+        <!-- O conteúdo da página será inserido aqui -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>© 2024 Sistema Ponto</p>
+    </footer>
+</body>
+</html>

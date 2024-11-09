@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Registrar Ponto</h2>
+    <p>Data: {{ hoje }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Registrar Ponto</button>
+    </form>
+
+    <table>
+        <tr>
+            <th>Entrada</th>
+            <th>Início Intervalo</th>
+            <th>Fim Intervalo</th>
+            <th>Saída</th>
+        </tr>
+        <tr>
+            <td>{{ ponto.entrada|default:"--" }}</td>
+            <td>{{ ponto.inicio_intervalo|default:"--" }}</td>
+            <td>{{ ponto.fim_intervalo|default:"--" }}</td>
+            <td>{{ ponto.saida|default:"--" }}</td>
+        </tr>
+    </table>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <!-- Mensagens de feedback -->
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <h1>Bem-vindo ao Sistema de Ponto</h1>
+
+    <!-- Links para ações principais -->
+    <nav>
+        <a href="{% url 'cadastrar_empresa' %}">Cadastrar Nova Empresa</a> |
+        <a href="{% url 'cadastrar_funcionario' %}">Cadastrar Funcionário</a> |
+        <a href="{% url 'registrar_ponto' %}">Registrar Ponto</a> |
+        <a href="{% url 'consultar_ponto' %}">Consultar Batidas de Ponto</a>
+    </nav>
+
+    <hr>
+
+    <!-- Exibir lista de empresas -->
+    <h2>Empresas</h2>
+    <ul>
+        {% for empresa in empresas %}
+            <li><strong>{{ empresa.nome }}</strong> - Endereço: {{ empresa.endereco }}</li>
+        {% empty %}
+            <li>Nenhuma empresa cadastrada.</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Exibir lista de funcionários e suas empresas -->
+    <h2>Funcionários</h2>
+    <ul>
+        {% for funcionario in funcionarios %}
+            <li>{{ funcionario.nome }} - Email: {{ funcionario.email }} - Empresa: {{ funcionario.empresa.nome }}</li>
+        {% empty %}
+            <li>Nenhum funcionário cadastrado.</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Se o usuário estiver autenticado, exibe o link de logout e troca de usuário -->
+    {% if user.is_authenticated %}
+        <p>Bem-vindo, {{ user.username }}!</p>
+        <a href="{% url 'logout' %}">Sair</a> | 
+        <a href="{% url 'login' %}">Trocar usuário</a>
+    {% else %}
+        <p>Você não está logado. <a href="{% url 'login' %}">Clique aqui para fazer login</a>.</p>
+    {% endif %}
+{% endblock %}
+

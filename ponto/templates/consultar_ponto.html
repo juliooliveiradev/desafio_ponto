@@ -1,0 +1,32 @@
+<h2>Registros de Ponto</h2>
+<table>
+    <tr>
+        <th>Funcionário</th>
+        <th>Entrada</th>
+        <th>Início Intervalo</th>
+        <th>Fim Intervalo</th>
+        <th>Saída</th>
+    </tr>
+    {% for ponto in pontos %}
+    <tr>
+        <td>{{ ponto.funcionario.nome }}</td>
+        {% if is_admin %}
+            <form method="post">
+                {% csrf_token %}
+                <td><input type="time" name="entrada" value="{{ ponto.entrada }}"></td>
+                <td><input type="time" name="inicio_intervalo" value="{{ ponto.inicio_intervalo }}"></td>
+                <td><input type="time" name="fim_intervalo" value="{{ ponto.fim_intervalo }}"></td>
+                <td><input type="time" name="saida" value="{{ ponto.saida }}"></td>
+                <input type="hidden" name="ponto_id" value="{{ ponto.id }}">
+                <td><button type="submit">Salvar</button></td>
+            </form>
+        {% else %}
+            <td>{{ ponto.entrada }}</td>
+            <td>{{ ponto.inicio_intervalo }}</td>
+            <td>{{ ponto.fim_intervalo }}</td>
+            <td>{{ ponto.saida }}</td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+</table>
+
