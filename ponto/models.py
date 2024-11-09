@@ -18,29 +18,39 @@ class Funcionario(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
     user = models.OneToOneField(User, null=False, on_delete=models.CASCADE, related_name="funcionario")
 
+    def __str__(self):
+        return self.nome
 
 
 
 class Ponto(models.Model):
     funcionario = models.ForeignKey(Funcionario, on_delete=models.CASCADE)
-    data = models.DateField(default=timezone.now)
-    entrada = models.DateTimeField(null=True, blank=True, default=timezone.now)
-    inicio_intervalo = models.DateTimeField(null=True, blank=True, default=timezone.now)
-    fim_intervalo = models.DateTimeField(null=True, blank=True, default=timezone.now)
-    saida = models.DateTimeField(null=True, blank=True, default=timezone.now)
-    
+    data = models.DateField()
+    entrada = models.DateTimeField(null=True, blank=True)
+    inicio_intervalo = models.DateTimeField(null=True, blank=True)
+    fim_intervalo = models.DateTimeField(null=True, blank=True)
+    saida = models.DateTimeField(null=True, blank=True)
+
     def batidas_restantes(self):
-        # Retorna True se houver campos não preenchidos
-        return not all([self.entrada, self.inicio_intervalo, self.fim_intervalo, self.saida])
-    
+        # Verifica se há algum campo de batida que ainda não foi preenchido
+        if not self.entrada or not self.inicio_intervalo or not self.fim_intervalo or not self.saida:
+            return True  # Existem batidas restantes para registrar
+        return False  # Todos os campos de batida estão preenchidos
+
     def registrar_batida(self):
-        # Registra as batidas na sequência
-        if not self.entrada:
+        # Registra a batida no primeiro campo vazio
+        if self.entrada is None:
             self.entrada = timezone.now()
-        elif not self.inicio_intervalo:
+        elif self.inicio_intervalo is None:
             self.inicio_intervalo = timezone.now()
-        elif not self.fim_intervalo:
+        elif self.fim_intervalo is None:
             self.fim_intervalo = timezone.now()
-        elif not self.saida:
+        elif self.saida is None:
             self.saida = timezone.now()
+
         self.save()
+
+
+    
+    def __str__(self):
+        return f"{self.funcionario.nome} - {self.data}"

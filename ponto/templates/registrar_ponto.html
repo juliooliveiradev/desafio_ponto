@@ -1,26 +1,38 @@
-{% extends "base.html" %}
+<h1>Registrar Ponto - {{ funcionario.nome }}</h1>
 
-{% block content %}
-    <h2>Registrar Ponto</h2>
-    <p>Data: {{ hoje }}</p>
+{% if ponto.entrada %}
+    <p>Entrada: {{ ponto.entrada }}</p>
+{% else %}
+    <p>Entrada: Não registrada</p>
+{% endif %}
 
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit">Registrar Ponto</button>
-    </form>
+{% if ponto.inicio_intervalo %}
+    <p>Início do Intervalo: {{ ponto.inicio_intervalo }}</p>
+{% else %}
+    <p>Início do Intervalo: Não registrado</p>
+{% endif %}
 
-    <table>
-        <tr>
-            <th>Entrada</th>
-            <th>Início Intervalo</th>
-            <th>Fim Intervalo</th>
-            <th>Saída</th>
-        </tr>
-        <tr>
-            <td>{{ ponto.entrada|default:"--" }}</td>
-            <td>{{ ponto.inicio_intervalo|default:"--" }}</td>
-            <td>{{ ponto.fim_intervalo|default:"--" }}</td>
-            <td>{{ ponto.saida|default:"--" }}</td>
-        </tr>
-    </table>
-{% endblock %}
+{% if ponto.fim_intervalo %}
+    <p>Fim do Intervalo: {{ ponto.fim_intervalo }}</p>
+{% else %}
+    <p>Fim do Intervalo: Não registrado</p>
+{% endif %}
+
+{% if ponto.saida %}
+    <p>Saída: {{ ponto.saida }}</p>
+{% else %}
+    <p>Saída: Não registrada</p>
+{% endif %}
+
+<form method="POST">
+    {% csrf_token %}
+    <button type="submit">Registrar Ponto</button>
+</form>
+
+{% if messages %}
+    <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}

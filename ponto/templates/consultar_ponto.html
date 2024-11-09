@@ -1,32 +1,88 @@
-<h2>Registros de Ponto</h2>
-<table>
-    <tr>
-        <th>Funcionário</th>
-        <th>Entrada</th>
-        <th>Início Intervalo</th>
-        <th>Fim Intervalo</th>
-        <th>Saída</th>
-    </tr>
-    {% for ponto in pontos %}
-    <tr>
-        <td>{{ ponto.funcionario.nome }}</td>
-        {% if is_admin %}
-            <form method="post">
-                {% csrf_token %}
-                <td><input type="time" name="entrada" value="{{ ponto.entrada }}"></td>
-                <td><input type="time" name="inicio_intervalo" value="{{ ponto.inicio_intervalo }}"></td>
-                <td><input type="time" name="fim_intervalo" value="{{ ponto.fim_intervalo }}"></td>
-                <td><input type="time" name="saida" value="{{ ponto.saida }}"></td>
-                <input type="hidden" name="ponto_id" value="{{ ponto.id }}">
-                <td><button type="submit">Salvar</button></td>
-            </form>
-        {% else %}
-            <td>{{ ponto.entrada }}</td>
-            <td>{{ ponto.inicio_intervalo }}</td>
-            <td>{{ ponto.fim_intervalo }}</td>
-            <td>{{ ponto.saida }}</td>
-        {% endif %}
-    </tr>
-    {% endfor %}
-</table>
+{% extends 'base_generic.html' %}
 
+{% block content %}
+  <h1>Consultar Ponto</h1>
+
+  <!-- Filtro de Mês e Ano -->
+  <form method="get" class="mb-3">
+    <label for="mes">Mês:</label>
+    <select name="mes" id="mes" class="form-control">
+      {% for m, label in meses %}
+        <option value="{{ m }}" {% if m == mes_selecionado %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="ano">Ano:</label>
+    <select name="ano" id="ano" class="form-control">
+      {% for a in anos %}
+        <option value="{{ a }}" {% if a == ano_selecionado %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-primary">Filtrar</button>
+  </form>
+
+  <!-- Tabela de Pontos -->
+  <form method="post">
+    {% csrf_token %}
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Entrada</th>
+          <th>Início Intervalo</th>
+          <th>Fim Intervalo</th>
+          <th>Saída</th>
+          {% if is_admin %}
+            <th>Editar</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for ponto in pontos %}
+          <tr>
+            <td>{{ ponto.data }}</td>
+
+            <td>
+                {% if is_admin %}
+                  <input type="datetime-local" name="ponto_{{ ponto.id }}_entrada" value="{{ ponto.entrada|date:'Y-m-d\TH:i' }}">
+                {% else %}
+                  {{ ponto.entrada|date:'Y-m-d H:i' }}
+                {% endif %}
+              </td>
+              
+              <td>
+                {% if is_admin %}
+                  <input type="datetime-local" name="ponto_{{ ponto.id }}_inicio_intervalo" value="{{ ponto.inicio_intervalo|date:'Y-m-d\TH:i' }}">
+                {% else %}
+                  {{ ponto.inicio_intervalo|date:'Y-m-d H:i' }}
+                {% endif %}
+              </td>
+              
+              <td>
+                {% if is_admin %}
+                  <input type="datetime-local" name="ponto_{{ ponto.id }}_fim_intervalo" value="{{ ponto.fim_intervalo|date:'Y-m-d\TH:i' }}">
+                {% else %}
+                  {{ ponto.fim_intervalo|date:'Y-m-d H:i' }}
+                {% endif %}
+              </td>
+              
+              <td>
+                {% if is_admin %}
+                  <input type="datetime-local" name="ponto_{{ ponto.id }}_saida" value="{{ ponto.saida|date:'Y-m-d\TH:i' }}">
+                {% else %}
+                  {{ ponto.saida|date:'Y-m-d H:i' }}
+                {% endif %}
+              </td>              
+
+            {% if is_admin %}
+              <td>
+                <button type="submit" class="btn btn-success">Salvar</button>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
+{% endblock %}

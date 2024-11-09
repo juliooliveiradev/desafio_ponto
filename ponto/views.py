@@ -106,7 +106,7 @@ def registrar_ponto(request):
     funcionario = request.user.funcionario
     hoje = timezone.now().date()
 
-    # Tenta buscar o ponto do dia atual, sem criar automaticamente
+    # Busca o ponto do dia atual
     ponto = Ponto.objects.filter(funcionario=funcionario, data=hoje).first()
 
     if request.method == 'POST':
@@ -114,29 +114,17 @@ def registrar_ponto(request):
         if ponto is None:
             ponto = Ponto(funcionario=funcionario, data=hoje)
         
-        # Registra no primeiro campo vazio encontrado
-        if ponto.entrada is None:
-            ponto.entrada = timezone.now()
-            messages.success(request, "Entrada registrada com sucesso!")
-        elif ponto.inicio_intervalo is None:
-            ponto.inicio_intervalo = timezone.now()
-            messages.success(request, "Início do intervalo registrado com sucesso!")
-        elif ponto.fim_intervalo is None:
-            ponto.fim_intervalo = timezone.now()
-            messages.success(request, "Fim do intervalo registrado com sucesso!")
-        elif ponto.saida is None:
-            ponto.saida = timezone.now()
-            messages.success(request, "Saída registrada com sucesso!")
+        # Verifica se ainda há batidas restantes
+        if ponto.batidas_restantes():
+            ponto.registrar_batida()
+            messages.success(request, "Ponto registrado com sucesso!")
         else:
-            # Exibe a mensagem de erro apenas se todos os campos estiverem preenchidos
             messages.error(request, "Você já registrou todas as batidas para hoje.")
-            return redirect('registrar_ponto')
-
-        # Salva o ponto no banco de dados
+        
         ponto.save()
         return redirect('registrar_ponto')
 
-    # Renderiza a página com os campos existentes
+    # Contexto da página
     context = {
         'ponto': ponto,
         'hoje': hoje
@@ -147,22 +135,55 @@ def registrar_ponto(request):
 @login_required
 def consultar_ponto(request):
     hoje = timezone.now().date()
-    pontos = Ponto.objects.filter(data=hoje)
+    mes_atual = hoje.month
+    ano_atual = hoje.year
 
-    if request.user.is_superuser:
-        if request.method == 'POST':
-            ponto_id = request.POST.get('ponto_id')
-            entrada = request.POST.get('entrada')
-            inicio_intervalo = request.POST.get('inicio_intervalo')
-            fim_intervalo = request.POST.get('fim_intervalo')
-            saida = request.POST.get('saida')
+    # Se o mês for filtrado pelo usuário, usamos o mês e ano selecionados
+    mes = request.GET.get('mes', mes_atual)
+    ano = request.GET.get('ano', ano_atual)
 
-            ponto = Ponto.objects.get(id=ponto_id)
-            ponto.entrada = entrada
-            ponto.inicio_intervalo = inicio_intervalo
-            ponto.fim_intervalo = fim_intervalo
-            ponto.saida = saida
-            ponto.save()
-            messages.success(request, "Ponto atualizado com sucesso.")
+    # Busca todos os pontos do mês e ano selecionados para o funcionário logado
+    funcionario = request.user.funcionario
+    pontos = Ponto.objects.filter(funcionario=funcionario, data__month=mes, data__year=ano)
 
-    return render(request, 'consultar_ponto.html', {'pontos': pontos, 'is_admin': request.user.is_superuser})
+    # Verifica se o usuário é admin
+    is_admin = request.user.is_staff
+
+    if request.method == 'POST' and is_admin:
+        # Caso o admin envie o formulário para editar os pontos
+        for key, value in request.POST.items():
+            if key.startswith('ponto_'):
+                try:
+                    ponto_id, campo = key.split('_')[1], key.split('_')[2]
+                    ponto = Ponto.objects.get(id=ponto_id)
+
+                    # Verifica se o campo existe no modelo e atualiza
+                    if campo in ['entrada', 'inicio_intervalo', 'fim_intervalo', 'saida']:
+                        try:
+                            # Transformando a string em datetime antes de salvar
+                            datetime_value = timezone.make_aware(timezone.datetime.strptime(value, '%Y-%m-%dT%H:%M'))
+                            setattr(ponto, campo, datetime_value)
+                            ponto.save()
+                        except ValueError:
+                            # Caso a conversão falhe (campo vazio ou formato inválido)
+                            continue
+
+                except (Ponto.DoesNotExist, ValueError):
+                    continue
+
+        messages.success(request, "Pontos atualizados com sucesso!")
+        return redirect('consultar_ponto')
+
+    # Filtro de meses
+    meses = [(i, f'{i:02d}') for i in range(1, 13)]
+    anos = [ano_atual, ano_atual - 1, ano_atual + 1]
+
+    context = {
+        'pontos': pontos,
+        'meses': meses,
+        'anos': anos,
+        'mes_selecionado': mes,
+        'ano_selecionado': ano,
+        'is_admin': is_admin
+    }
+    return render(request, 'consultar_ponto.html', context)
